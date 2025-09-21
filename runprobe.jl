@@ -2,7 +2,8 @@ include("probefns.jl")
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    graph_generator_name, V, start_train, n_train_interval, end_train, results_dir, run_index = ARGS
+    models_str, graph_generator_name, V, start_train, n_train_interval, end_train, results_dir, run_index = ARGS
+    model_names = split(models_str, ",") .|> String
     V = parse(Int, V)
     K = ceil(V / 2) |> Int
     start_train = parse(Int, start_train)
@@ -24,7 +25,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     optimiser5 = Optim.Adam
 
     # For bipartite and paley
-    if contains(["random_bipartite", "paley_graph"], graph_generator_name)
+    if in(graph_generator_name, ["random_bipartite", "paley_graph"])
         make_obj_fns = Dict(
             "MEF"=>(fit_mef_2nd_order, optimiser1),
             "Delta"=>(fit_delta, optimiser1),
@@ -37,6 +38,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
             "Perceptron"=>(fit_perceptron, optimiser2)
         )
     end
+    make_obj_fns = Dict(model_name=>make_obj_fns[model_name] for model_name in model_names)
 
     # The result is an array of tuples (train, test, res) where res is a Dict of obj_name=>(net, optim_res, bitcorr%, corr%, correct_samples)
     if graph_generator_name == "random_group_graph"

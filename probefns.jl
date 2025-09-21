@@ -81,7 +81,8 @@ function save_probe_plot_result(fpath::String, result::Dict{String, Dict{String,
                 parallel_sort!(new_res, "x")
                 old_result[obj_name] = new_res
             else
-                old_result[obj_name] = parallel_sort!(obj_res, "x")
+                parallel_sort!(obj_res, "x")
+                old_result[obj_name] = obj_res
             end
         end
         old_result = Dict(Symbol(k)=>v for (k, v) in old_result)
@@ -116,7 +117,7 @@ function pack_plot_variables(result::AbstractVector, obj_fn_names::Vector{String
 end
 
 
-function test_net(net::MPN2T, test::Vector{G}) where {G<:BaseGraph}
+function test_net(net::HopNet, test::Vector{G}) where {G<:BaseGraph}
     x = graph_data(test)
     out = convergedynamics(net, x)
     a = out .== x
@@ -183,17 +184,17 @@ end
 # loop over range of # of train samples, do the above fitting
 function probe_iso_train_range(V::Int, K::Int, train_range::StepRange, num_test::Int, graph_generator::Function, make_obj_fns)#::Dict{String, Tuple{Function, UnionAll}})
     train, test = generate_iso_data(V, K, train_range[end], num_test, graph_generator)
-    train_over_range(train, test, make_obj_fns)
+    train_over_range(train, test, train_range, make_obj_fns)
 end
 
 
 function probe_train_range(V::Int, K::Int, train_range::StepRange, num_test::Int, graph_generator::Function, make_obj_fns)
     train, test = generate_data(V, K, train_range[end], num_test, graph_generator)
-    train_over_range(train, test, make_obj_fns)
+    train_over_range(train, test, train_range, make_obj_fns)
 end
 
 
-function train_over_range(train, test, make_obj_fns)
+function train_over_range(train, test, train_range, make_obj_fns)
     results = [[] for _ in 1:Threads.nthreads()]
     total_train_samples = length(train)
     # Adjust train_range to be the smallest range value in train_range bigger than total_train_samples
